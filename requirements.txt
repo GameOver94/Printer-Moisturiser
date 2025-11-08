@@ -1,8 +1,8 @@
 # Core dependencies for printer maintenance application
 # Optimized for ARM64 architecture (Raspberry Pi)
 
-# SNMP support - using pysnmp-lextudio for Python 3.12+ compatibility
-pysnmp==7.1.22
+# SNMP support - using pysnmp 6.x for Python 3.12+ compatibility
+pysnmp>=6.2.0,<7.0.0
 pyasn1==0.6.1
 
 # PDF generation

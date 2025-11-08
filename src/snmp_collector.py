@@ -4,7 +4,7 @@ This module collects printer information via SNMP protocol.
 """
 
 from typing import Dict, Optional, Any
-from pysnmp.hlapi import (
+from pysnmp.hlapi.asyncio import (
     getCmd,
     SnmpEngine,
     CommunityData,
