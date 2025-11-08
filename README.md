@@ -18,13 +18,15 @@ A complete Python 3.14 application for HP Smart Tank 7005 printer maintenance th
   - Grid patterns for alignment testing
   - Large color blocks for print quality assessment
 
-- **IPP Printing**: Sends test pages directly to the printer via Internet Printing Protocol
+- **IPP Printing**: Sends test pages directly to the printer via Internet Printing Protocol using pure Python (pyipp library, no CUPS dependency)
 
 - **Error Notifications**: Sends alerts to ntfy.sh on failures or completion
 
 - **Docker Support**: Optimized for ARM64 architecture (Raspberry Pi)
 
-- **Automated Scheduling**: Weekly cron job (Sunday at 2:00 AM by default)
+- **Automated Scheduling**: Configurable cron job via environment variable (default: Sunday at 2:00 AM)
+
+- **Cross-Platform Testing**: Includes both Bash and PowerShell test scripts
 
 ## Requirements
 
@@ -64,6 +66,9 @@ OUTPUT_PATH=/tmp/printer-output/printer-test.pdf
 
 # Optional: Timezone
 TZ=America/New_York
+
+# Optional: Cron schedule (default: 0 2 * * 0 - Sunday at 2:00 AM)
+CRON_SCHEDULE=0 2 * * 0
 ```
 
 ### 3. Build and Run with Docker Compose
@@ -124,14 +129,17 @@ Printer-Moisturiser/
 | `SNMP_COMMUNITY` | No | `public` | SNMP community string |
 | `OUTPUT_PATH` | No | `/tmp/printer-output/printer-test.pdf` | Output path for generated PDFs |
 | `TZ` | No | `UTC` | Timezone for cron scheduling |
+| `CRON_SCHEDULE` | No | `0 2 * * 0` | Cron schedule (Sunday at 2:00 AM) |
 
 ### Customizing the Schedule
 
-To change the cron schedule, edit the Dockerfile:
+You can now customize the maintenance schedule via the `CRON_SCHEDULE` environment variable without rebuilding the Docker image:
 
-```dockerfile
-# Default: Every Sunday at 2:00 AM
-RUN echo "0 2 * * 0 cd /app && /usr/local/bin/python main.py >> /var/log/printer-maintenance.log 2>&1" > /etc/cron.d/printer-maintenance
+```env
+# In .env file
+CRON_SCHEDULE=0 3 * * *  # Daily at 3:00 AM
+CRON_SCHEDULE=0 9 * * 1  # Every Monday at 9:00 AM
+CRON_SCHEDULE=0 2 * * 0  # Every Sunday at 2:00 AM (default)
 ```
 
 Cron format: `minute hour day month weekday`
@@ -141,10 +149,30 @@ Examples:
 - Every Monday at 9 AM: `0 9 * * 1`
 - Twice weekly (Mon & Thu at 2 AM): `0 2 * * 1,4`
 
-After modifying, rebuild the container:
+Changes take effect on next container restart:
 ```bash
-docker-compose up -d --build
+docker-compose up -d
 ```
+
+## Local Testing
+
+The project includes test scripts for both Linux/Mac and Windows:
+
+### Linux/Mac (Bash)
+```bash
+./test.sh
+```
+
+### Windows (PowerShell)
+```powershell
+.\test.ps1
+```
+
+The PowerShell script will:
+1. Check for and create a virtual environment at `.venv` if it doesn't exist
+2. Activate the virtual environment
+3. Install dependencies
+4. Run the application with test configuration
 
 ## Notifications
 
@@ -175,15 +203,12 @@ To receive notifications:
 ### Print Job Fails
 
 1. Verify IPP is enabled on the printer
-2. Check CUPS status in container:
+2. Check printer connectivity:
    ```bash
-   docker exec hp-printer-maintenance lpstat -h <PRINTER_IP> -p
+   docker exec hp-printer-maintenance ping -c 4 <PRINTER_IP>
    ```
 
-3. Try printing manually:
-   ```bash
-   docker exec hp-printer-maintenance lp -d ipp://<PRINTER_IP>/ipp/print /tmp/printer-output/printer-test.pdf
-   ```
+3. Test IPP connection with pyipp (the application will log detailed errors)
 
 ### Container Won't Start
 
@@ -200,11 +225,14 @@ To receive notifications:
 
 ### Running Locally (Without Docker)
 
-1. Install Python 3.14
+#### Linux/Mac
 
-2. Install system dependencies:
+1. Install Python 3.12 or higher
+
+2. Create and activate virtual environment:
    ```bash
-   sudo apt-get install cups cups-client snmp
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
 
 3. Install Python dependencies:
@@ -223,6 +251,43 @@ To receive notifications:
    cd src
    python main.py
    ```
+
+Or simply use the test script:
+```bash
+./test.sh
+```
+
+#### Windows
+
+1. Install Python 3.12 or higher
+
+2. Create and activate virtual environment:
+   ```powershell
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1
+   ```
+
+3. Install Python dependencies:
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+4. Set environment variables:
+   ```powershell
+   $env:PRINTER_IP="192.168.1.100"
+   $env:NTFY_CHANNEL="printer-maintenance"
+   ```
+
+5. Run the application:
+   ```powershell
+   cd src
+   python main.py
+   ```
+
+Or simply use the test script:
+```powershell
+.\test.ps1
+```
 
 ### Code Style
 

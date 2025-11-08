@@ -27,6 +27,8 @@ docker exec -it hp-printer-maintenance /bin/bash
 ```
 
 ### Local Testing
+
+#### Linux/Mac
 ```bash
 # Run test script
 ./test.sh
@@ -36,9 +38,16 @@ cd src && python3 -c "from config import Config; from snmp_collector import Snmp
 
 # Run main application
 cd src && python3 main.py
+```
 
-# Test PDF generation
-cd src && python3 pdf_generator.py
+#### Windows
+```powershell
+# Run test script (activates .venv automatically)
+.\test.ps1
+
+# Run main application
+cd src
+python main.py
 ```
 
 ### Environment Variables
@@ -52,24 +61,19 @@ export PRINTER_NAME="HP Smart Tank 7005"
 export SNMP_COMMUNITY=public
 export OUTPUT_PATH=/tmp/printer-test.pdf
 export TZ=America/New_York
+export CRON_SCHEDULE="0 2 * * 0"
 ```
 
 ## Cron Schedule Examples
 
-Edit `Dockerfile` line 31 to change schedule:
+Set via `CRON_SCHEDULE` environment variable (no need to edit Dockerfile):
 
 ```bash
-# Daily at 3:00 AM
-0 3 * * *
-
-# Every Monday at 9:00 AM
-0 9 * * 1
-
-# Twice weekly (Monday & Thursday at 2:00 AM)
-0 2 * * 1,4
-
-# Every 6 hours
-0 */6 * * *
+# In .env file or docker-compose.yaml
+CRON_SCHEDULE="0 3 * * *"    # Daily at 3:00 AM
+CRON_SCHEDULE="0 9 * * 1"    # Every Monday at 9:00 AM
+CRON_SCHEDULE="0 2 * * 1,4"  # Monday & Thursday at 2:00 AM
+CRON_SCHEDULE="0 */6 * * *"  # Every 6 hours
 ```
 
 Format: `minute hour day month weekday`
@@ -88,7 +92,9 @@ docker exec hp-printer-maintenance snmpwalk -v2c -c public 192.168.1.100 system
 
 ### Test IPP printing
 ```bash
-docker exec hp-printer-maintenance lpstat -h 192.168.1.100 -p
+# The application uses pyipp library (pure Python)
+# No manual testing command needed - check application logs for IPP communication
+docker-compose logs -f
 ```
 
 ### View generated PDF
@@ -129,18 +135,20 @@ Printer-Moisturiser/
 │   ├── config.py             # Configuration (73 lines)
 │   ├── snmp_collector.py     # SNMP monitoring (145 lines)
 │   ├── pdf_generator.py      # PDF generation (227 lines)
-│   ├── ipp_printer.py        # IPP printing (113 lines)
+│   ├── ipp_printer.py        # IPP printing with pyipp (155 lines)
 │   ├── notification.py       # Notifications (117 lines)
 │   └── main.py               # Entry point (153 lines)
-├── Dockerfile                # Container definition (66 lines)
-├── docker-compose.yaml       # Compose config (58 lines)
-├── requirements.txt          # Dependencies (16 lines)
-├── test.sh                   # Test script
+├── Dockerfile                # Container definition (60 lines)
+├── docker-compose.yaml       # Compose config (61 lines)
+├── requirements.txt          # Dependencies (17 lines)
+├── test.sh                   # Test script (Bash)
+├── test.ps1                  # Test script (PowerShell)
 ├── .env.example              # Config template
-├── README.md                 # Full documentation (246 lines)
+├── README.md                 # Full documentation
 ├── CONTRIBUTING.md           # Contribution guide
+├── QUICKREF.md               # Quick reference
 └── .github/workflows/        # CI/CD
     └── build-and-test.yml    # GitHub Actions
 ```
 
-Total: ~1,200 lines of code + documentation
+Total: ~1,300 lines of code + documentation
