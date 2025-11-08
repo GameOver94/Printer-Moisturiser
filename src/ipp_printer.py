@@ -5,7 +5,9 @@ This module handles printing via the Internet Printing Protocol (IPP).
 
 import logging
 from typing import Optional
-import subprocess
+import asyncio
+from pyipp import IPP, Printer as IppPrinterClient
+from pyipp.enums import IppOperation
 import os
 
 
@@ -26,6 +28,58 @@ class IppPrinter:
         self.m_printerName: str = printerName
         self.m_printerUri: str = f"ipp://{printerIp}/ipp/print"
 
+    async def _async_print_file(self, filePath: str) -> bool:
+        """Asynchronously print a file to the printer using IPP.
+
+        Args:
+            filePath: Path to the file to print.
+
+        Returns:
+            bool: True if printing succeeded, False otherwise.
+        """
+        try:
+            # Create IPP client
+            ipp = IPP(host=self.m_printerIp)
+            
+            # Get printer information first
+            printer: IppPrinterClient = await ipp.execute(
+                IppOperation.GET_PRINTER_ATTRIBUTES,
+                {
+                    "printer-uri": self.m_printerUri,
+                    "requested-attributes": [
+                        "printer-name",
+                        "printer-state",
+                        "printer-state-message",
+                    ],
+                },
+            )
+            
+            logger.info(f"Printer state: {printer.info.state}")
+            logger.info(f"Printer name: {printer.info.name}")
+            
+            # Read the PDF file
+            with open(filePath, "rb") as f:
+                documentData = f.read()
+            
+            # Submit print job
+            result = await ipp.execute(
+                IppOperation.PRINT_JOB,
+                {
+                    "printer-uri": self.m_printerUri,
+                    "requesting-user-name": "printer-maintenance",
+                    "job-name": f"{self.m_printerName} Test Page",
+                    "document-format": "application/pdf",
+                    "document": documentData,
+                },
+            )
+            
+            logger.info(f"Print job submitted successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to print file via IPP: {e}")
+            return False
+
     def print_file(self, filePath: str) -> bool:
         """Print a file to the printer using IPP.
 
@@ -42,40 +96,41 @@ class IppPrinter:
         logger.info(f"Printing {filePath} to {self.m_printerUri}")
 
         try:
-            # Use lp command with IPP URI
-            # The lp command is part of CUPS and supports IPP directly
-            cmd = [
-                "lp",
-                "-d", self.m_printerUri,
-                "-t", f"{self.m_printerName} Test Page",
-                "-o", "fit-to-page",
-                filePath
-            ]
-
-            logger.debug(f"Executing command: {' '.join(cmd)}")
-            
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-
-            if result.returncode == 0:
-                logger.info(f"Print job submitted successfully: {result.stdout.strip()}")
-                return True
-            else:
-                logger.error(f"Print job failed: {result.stderr}")
-                return False
-
-        except subprocess.TimeoutExpired:
-            logger.error("Print job timed out after 30 seconds")
-            return False
-        except FileNotFoundError:
-            logger.error("lp command not found. CUPS may not be installed.")
-            return False
+            # Run the async print function
+            return asyncio.run(self._async_print_file(filePath))
         except Exception as e:
             logger.error(f"Failed to print file: {e}")
+            return False
+
+    async def _async_check_printer_status(self) -> bool:
+        """Asynchronously check if the printer is reachable via IPP.
+
+        Returns:
+            bool: True if printer is reachable, False otherwise.
+        """
+        try:
+            # Create IPP client
+            ipp = IPP(host=self.m_printerIp)
+            
+            # Get printer information
+            printer: IppPrinterClient = await ipp.execute(
+                IppOperation.GET_PRINTER_ATTRIBUTES,
+                {
+                    "printer-uri": self.m_printerUri,
+                    "requested-attributes": [
+                        "printer-name",
+                        "printer-state",
+                        "printer-state-message",
+                    ],
+                },
+            )
+            
+            logger.info(f"Printer is reachable via IPP")
+            logger.info(f"Printer state: {printer.info.state}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to check printer status: {e}")
             return False
 
     def check_printer_status(self) -> bool:
@@ -85,29 +140,8 @@ class IppPrinter:
             bool: True if printer is reachable, False otherwise.
         """
         try:
-            # Try to query printer status using lpstat
-            cmd = ["lpstat", "-h", self.m_printerIp, "-p"]
-            
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-
-            if result.returncode == 0:
-                logger.info("Printer is reachable via IPP")
-                return True
-            else:
-                logger.warning(f"Printer status check returned: {result.stderr}")
-                return False
-
-        except subprocess.TimeoutExpired:
-            logger.error("Printer status check timed out")
-            return False
-        except FileNotFoundError:
-            logger.warning("lpstat command not found. Skipping printer status check.")
-            return True  # Assume printer is available if we can't check
+            # Run the async status check
+            return asyncio.run(self._async_check_printer_status())
         except Exception as e:
             logger.error(f"Failed to check printer status: {e}")
             return False

@@ -12,5 +12,5 @@ Pillow==10.1.0
 # HTTP requests for notifications
 requests==2.31.0
 
-# IPP printing dependencies (CUPS will be installed in Docker)
-# pycups is not included as we use system lp command directly
+# IPP printing support
+pyipp==0.17.2

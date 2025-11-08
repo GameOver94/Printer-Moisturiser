@@ -27,6 +27,9 @@ services:
       
       # Timezone configuration (optional)
       - TZ=${TZ:-UTC}
+      
+      # Cron schedule (optional, default: 0 2 * * 0 - Sunday at 2:00 AM)
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 * * 0}
     
     # Volume mounts
     volumes:

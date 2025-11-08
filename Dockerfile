@@ -9,12 +9,9 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
-# - cups: For IPP printing support
 # - cron: For scheduling
 # - snmp: For SNMP utilities (optional, for debugging)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    cups \
-    cups-client \
     cron \
     snmp \
     && rm -rf /var/lib/apt/lists/*
@@ -34,18 +31,18 @@ COPY src/ /app/
 # Create output directory for PDFs
 RUN mkdir -p /tmp/printer-output && chmod 777 /tmp/printer-output
 
-# Create cron job for weekly execution
-# Run every Sunday at 2:00 AM
-RUN echo "0 2 * * 0 cd /app && /usr/local/bin/python main.py >> /var/log/printer-maintenance.log 2>&1" > /etc/cron.d/printer-maintenance && \
-    chmod 0644 /etc/cron.d/printer-maintenance && \
-    crontab /etc/cron.d/printer-maintenance && \
-    touch /var/log/printer-maintenance.log
-
 # Create startup script that runs cron and keeps container alive
 RUN echo '#!/bin/bash\n\
 echo "Starting Printer Maintenance Container..."\n\
-echo "Cron schedule: Weekly (Sunday at 2:00 AM)"\n\
+# Get cron schedule from environment variable or use default\n\
+CRON_SCHEDULE="${CRON_SCHEDULE:-0 2 * * 0}"\n\
+echo "Cron schedule: $CRON_SCHEDULE"\n\
 echo ""\n\
+# Create cron job with the configured schedule\n\
+echo "$CRON_SCHEDULE cd /app && /usr/local/bin/python main.py >> /var/log/printer-maintenance.log 2>&1" > /etc/cron.d/printer-maintenance\n\
+chmod 0644 /etc/cron.d/printer-maintenance\n\
+crontab /etc/cron.d/printer-maintenance\n\
+touch /var/log/printer-maintenance.log\n\
 # Run once at startup\n\
 echo "Running initial printer maintenance..."\n\
 cd /app && /usr/local/bin/python main.py\n\
