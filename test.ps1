@@ -59,6 +59,26 @@ if ($LASTEXITCODE -eq 0) {
 }
 Write-Host ""
 
+# Load environment variables from .env (if present) without overwriting existing env vars
+$envFile = Join-Path $PSScriptRoot '.env'
+if (Test-Path $envFile) {
+    Write-Host "Loading environment variables from $envFile" -ForegroundColor Yellow
+    Get-Content $envFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -eq '' -or $line.StartsWith('#')) { return }
+        if ($line -match '^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+            $key = $matches[1]
+            $val = $matches[2]
+            # Remove surrounding quotes if present
+            if ($val.Length -ge 2 -and ((($val.StartsWith('"') -and $val.EndsWith('"')) -or ($val.StartsWith("'") -and $val.EndsWith("'"))))) {
+                $val = $val.Substring(1, $val.Length - 2)
+            }
+            # Overwrite any existing process environment variable with the value from .env
+            Set-Item -Path "env:$key" -Value $val
+        }
+    }
+}
+
 # Set default environment variables for testing
 if (-Not $env:PRINTER_IP) { $env:PRINTER_IP = "192.168.1.100" }
 if (-Not $env:NTFY_CHANNEL) { $env:NTFY_CHANNEL = "printer-test" }
