@@ -1,0 +1,67 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Lint with Python compile
+      run: |
+        cd src
+        python -m py_compile *.py
+
+    - name: Test imports
+      run: |
+        cd src
+        python -c "from config import Config; from snmp_collector import SnmpCollector; from pdf_generator import PdfGenerator; from ipp_printer import IppPrinter; from notification import Notifier; print('All imports successful')"
+
+    - name: Test PDF generation
+      run: |
+        cd src
+        python -c "
+        from pdf_generator import PdfGenerator
+        pdfGen = PdfGenerator('/tmp/test.pdf')
+        printerInfo = {'model_name': 'Test', 'device_description': 'Test', 'printer_name': 'Test', 'serial_number': 'Test', 'pages_printed': '0', 'ip_address': '127.0.0.1', 'network_status': 'Test', 'uptime': '0', 'ink_levels': {'cyan': '0', 'magenta': '0', 'yellow': '0', 'black': '0'}}
+        pdfGen.generate_test_page(printerInfo)
+        print('PDF generation test passed')
+        "
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image (test only)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/arm64
+        push: false
+        tags: printer-maintenance:test
