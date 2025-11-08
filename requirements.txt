@@ -1,0 +1,16 @@
+# Core dependencies for printer maintenance application
+# Optimized for ARM64 architecture (Raspberry Pi)
+
+# SNMP support - using pysnmp-lextudio for Python 3.12+ compatibility
+pysnmp-lextudio==5.0.34
+pyasn1==0.5.1
+
+# PDF generation
+reportlab==4.0.7
+Pillow==10.1.0
+
+# HTTP requests for notifications
+requests==2.31.0
+
+# IPP printing dependencies (CUPS will be installed in Docker)
+# pycups is not included as we use system lp command directly

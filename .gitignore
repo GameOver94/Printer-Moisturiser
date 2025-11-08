@@ -205,3 +205,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Printer Maintenance Application
+# Generated PDFs and output files
+*.pdf
+printer-output/
+/tmp/printer-output/
+
+# Environment files
+.env

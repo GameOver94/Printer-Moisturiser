@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  printer-maintenance:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hp-printer-maintenance
+    restart: unless-stopped
+    
+    # Environment variables for configuration
+    environment:
+      # Printer IP address (required)
+      - PRINTER_IP=${PRINTER_IP:-192.168.1.100}
+      
+      # ntfy.sh channel for notifications (required)
+      - NTFY_CHANNEL=${NTFY_CHANNEL:-printer-maintenance}
+      
+      # Printer name (optional, for display purposes)
+      - PRINTER_NAME=${PRINTER_NAME:-HP Smart Tank 7005}
+      
+      # SNMP community string (optional, default: public)
+      - SNMP_COMMUNITY=${SNMP_COMMUNITY:-public}
+      
+      # Output path for generated PDFs (optional)
+      - OUTPUT_PATH=${OUTPUT_PATH:-/tmp/printer-output/printer-test.pdf}
+      
+      # Timezone configuration (optional)
+      - TZ=${TZ:-UTC}
+    
+    # Volume mounts
+    volumes:
+      # Persist logs
+      - printer-logs:/var/log
+      
+      # Persist generated PDFs (optional)
+      - printer-output:/tmp/printer-output
+    
+    # Network mode: host mode is recommended for easier printer access
+    # Alternatively, you can use bridge mode with appropriate network configuration
+    network_mode: host
+    
+    # Resource limits (adjust based on Raspberry Pi model)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+# Named volumes
+volumes:
+  printer-logs:
+    driver: local
+  printer-output:
+    driver: local
