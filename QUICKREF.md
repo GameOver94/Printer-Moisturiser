@@ -34,7 +34,7 @@ docker exec -it hp-printer-maintenance /bin/bash
 ./test.sh
 
 # Test imports only
-cd src && python3 -c "from config import Config; from snmp_collector import SnmpCollector; from pdf_generator import PdfGenerator; from ipp_printer import IppPrinter; from notification import Notifier"
+cd src && python3 -c "from config import Config; from snmp_collector import SnmpCollector; from pdf_generator import PdfGenerator; from os_printer import OsPrinter; from notification import Notifier"
 
 # Run main application
 cd src && python3 main.py
@@ -62,6 +62,12 @@ export SNMP_COMMUNITY=public
 export OUTPUT_PATH=/tmp/printer-test.pdf
 export TZ=America/New_York
 export CRON_SCHEDULE="0 2 * * 0"
+
+# CUPS Configuration (Optional)
+export PRINTER_URI="ipp://192.168.1.100/ipp/print"
+export PRINTER_DRIVER="everywhere"
+export PRINTER_SET_DEFAULT="true"
+export PRINT_DUPLEX="false"
 ```
 
 ## Cron Schedule Examples
@@ -90,11 +96,22 @@ ping 192.168.1.100
 docker exec hp-printer-maintenance snmpwalk -v2c -c public 192.168.1.100 system
 ```
 
-### Test IPP printing
+### Test CUPS printing
 ```bash
-# The application uses pyipp library (pure Python)
-# No manual testing command needed - check application logs for IPP communication
-docker-compose logs -f
+# Check CUPS status
+docker exec hp-printer-maintenance lpstat -t
+
+# List printers
+docker exec hp-printer-maintenance lpstat -p -d
+
+# Check print queue
+docker exec hp-printer-maintenance lpstat -o
+
+# View CUPS logs
+docker exec hp-printer-maintenance tail -f /var/log/cups/error_log
+
+# Test print manually
+docker exec hp-printer-maintenance lp -d "HP Smart Tank 7005" /tmp/test.pdf
 ```
 
 ### View generated PDF
@@ -113,8 +130,10 @@ docker inspect hp-printer-maintenance
 ### In Container
 - Application: `/app/`
 - Logs: `/var/log/printer-maintenance.log`
+- CUPS logs: `/var/log/cups/`
 - Output: `/tmp/printer-output/printer-test.pdf`
 - Cron config: `/etc/cron.d/printer-maintenance`
+- Printer setup: `/setup-printer.sh`
 
 ### On Host (with volumes)
 - Logs: Docker volume `printer-logs`
@@ -132,15 +151,15 @@ curl -d "Test notification" https://ntfy.sh/printer-maintenance
 Printer-Moisturiser/
 ├── src/
 │   ├── __init__.py           # Package initialization
-│   ├── config.py             # Configuration (73 lines)
-│   ├── snmp_collector.py     # SNMP monitoring (145 lines)
-│   ├── pdf_generator.py      # PDF generation (227 lines)
-│   ├── ipp_printer.py        # IPP printing with pyipp (155 lines)
-│   ├── notification.py       # Notifications (117 lines)
-│   └── main.py               # Entry point (153 lines)
-├── Dockerfile                # Container definition (60 lines)
-├── docker-compose.yaml       # Compose config (61 lines)
-├── requirements.txt          # Dependencies (17 lines)
+│   ├── config.py             # Configuration
+│   ├── snmp_collector.py     # SNMP monitoring
+│   ├── pdf_generator.py      # PDF generation
+│   ├── os_printer.py         # OS printing (CUPS)
+│   ├── notification.py       # Notifications
+│   └── main.py               # Entry point
+├── Dockerfile                # Container definition with CUPS
+├── docker-compose.yaml       # Compose config (bridge network)
+├── requirements.txt          # Dependencies (with pycups)
 ├── test.sh                   # Test script (Bash)
 ├── test.ps1                  # Test script (PowerShell)
 ├── .env.example              # Config template
