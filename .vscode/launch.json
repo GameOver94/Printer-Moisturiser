@@ -1,0 +1,21 @@
+{
+    // VS Code launch configuration for debugging the Python application
+    // Use the workspace .venv interpreter if present.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Launch src/main.py",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env",
+            // If you use the included venv, VS Code will usually detect it automatically.
+            // If not, uncomment and adjust the following to point to the venv python executable:
+            // "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "args": []
+        }
+    ]
+}
