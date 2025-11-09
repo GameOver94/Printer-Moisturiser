@@ -3,12 +3,16 @@
 This module generates PDF test pages with printer information and test patterns.
 """
 
-from typing import Dict, Any
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import Any, Dict
+
+from reportlab.lib.colors import black, blue, cyan, green, magenta, red, yellow
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
-from reportlab.lib.colors import black, cyan, magenta, yellow, red, green, blue
-import logging
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +27,7 @@ class PdfGenerator:
         Args:
             outputPath: Path where the PDF will be saved.
         """
-        self.m_outputPath: str = outputPath
+        self.m_outputPath: Path = Path(outputPath).expanduser()
 
     def _draw_printer_info(self, canvasObj: canvas.Canvas, printerInfo: Dict[str, Any], startY: float) -> float:
         """Draw printer information on the PDF.
@@ -193,7 +197,9 @@ class PdfGenerator:
         logger.info(f"Generating PDF test page: {self.m_outputPath}")
 
         try:
-            canvasObj = canvas.Canvas(self.m_outputPath, pagesize=letter)
+            self.m_outputPath.parent.mkdir(parents=True, exist_ok=True)
+
+            canvasObj = canvas.Canvas(str(self.m_outputPath), pagesize=letter)
             pageWidth, pageHeight = letter
 
             # Start from top of page
@@ -220,7 +226,7 @@ class PdfGenerator:
             canvasObj.save()
 
             logger.info(f"PDF test page generated successfully: {self.m_outputPath}")
-            return self.m_outputPath
+            return str(self.m_outputPath)
 
         except Exception as e:
             logger.error(f"Failed to generate PDF: {e}")

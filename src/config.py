@@ -3,8 +3,22 @@
 This module handles all environment variable configuration for the application.
 """
 
+from __future__ import annotations
+
 import os
+import tempfile
+from pathlib import Path
 from typing import Optional
+
+
+def _resolve_output_path(raw_value: Optional[str]) -> str:
+    """Create an OS-friendly output path with sensible defaults."""
+
+    default_path = Path(tempfile.gettempdir()) / "printer-output" / "printer-test.pdf"
+    if raw_value:
+        expanded = os.path.expandvars(raw_value)
+        return str(Path(expanded).expanduser())
+    return str(default_path)
 
 
 class Config:
@@ -16,7 +30,9 @@ class Config:
         self.m_ntfyChannel: str = os.getenv("NTFY_CHANNEL", "printer-maintenance")
         self.m_printerName: str = os.getenv("PRINTER_NAME", "HP Smart Tank 7005")
         self.m_snmpCommunity: str = os.getenv("SNMP_COMMUNITY", "public")
-        self.m_outputPath: str = os.getenv("OUTPUT_PATH", "/tmp/printer-test.pdf")
+        self.m_outputPath: str = _resolve_output_path(os.getenv("OUTPUT_PATH"))
+        duplex_raw = os.getenv("PRINT_DUPLEX", "false").strip().lower()
+        self.m_printDuplex: bool = duplex_raw in {"1", "true", "yes", "on"}
 
     def get_printer_ip(self) -> str:
         """Get the printer IP address.
@@ -57,6 +73,11 @@ class Config:
             str: The configured output path.
         """
         return self.m_outputPath
+
+    def get_print_duplex(self) -> bool:
+        """Return whether duplex printing is requested."""
+
+        return self.m_printDuplex
 
     def validate(self) -> bool:
         """Validate that all required configuration is present.

@@ -3,7 +3,7 @@
 This module orchestrates the printer maintenance workflow:
 1. Gather printer information via SNMP
 2. Generate PDF test page
-3. Send to printer via IPP
+3. Send to printer via the OS spooler
 4. Send notifications on success/failure
 """
 
@@ -14,7 +14,7 @@ from typing import Optional
 from config import Config
 from snmp_collector import SnmpCollector
 from pdf_generator import PdfGenerator
-from ipp_printer import IppPrinter
+from os_printer import OsPrinter
 from notification import Notifier
 
 
@@ -94,17 +94,14 @@ def main() -> int:
         pdfPath = pdfGenerator.generate_test_page(printerInfo)
         logger.info(f"PDF test page generated: {pdfPath}")
 
-        # Step 3: Send to printer via IPP
+        # Step 3: Send to printer via the OS spooler
         logger.info("\n" + "=" * 60)
         logger.info("Step 3: Sending test page to printer")
         logger.info("=" * 60)
-        
-        ippPrinter = IppPrinter(
-            config.get_printer_ip(),
-            config.get_printer_name()
-        )
-        
-        printSuccess = ippPrinter.print_file(pdfPath)
+
+        osPrinter = OsPrinter(config.get_printer_name(), config.get_print_duplex())
+
+        printSuccess = osPrinter.print_file(pdfPath)
         
         if printSuccess:
             logger.info("Test page sent to printer successfully")
