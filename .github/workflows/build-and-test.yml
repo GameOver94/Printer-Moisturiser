@@ -110,6 +110,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Set container repository
+      id: container_repo
+      run: echo "repository=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
 
@@ -123,8 +127,8 @@ jobs:
         platforms: linux/arm64
         push: false
         tags: |
-          ghcr.io/${{ github.repository_owner }}/printer-moisturiser:test
-          ghcr.io/${{ github.repository_owner }}/printer-moisturiser:${{ github.sha }}
+          ${{ steps.container_repo.outputs.repository }}:test
+          ${{ steps.container_repo.outputs.repository }}:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -134,7 +138,7 @@ jobs:
         context: .
         platforms: linux/amd64
         push: false
-        tags: printer-moisturiser:test-amd64
+        tags: ${{ steps.container_repo.outputs.repository }}:test-amd64
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
