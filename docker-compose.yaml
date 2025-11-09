@@ -30,6 +30,18 @@ services:
       
       # Cron schedule (optional, default: 0 2 * * 0 - Sunday at 2:00 AM)
       - CRON_SCHEDULE=${CRON_SCHEDULE:-0 2 * * 0}
+      
+      # Printer URI for CUPS (optional, default: ipp://{PRINTER_IP}/ipp/print)
+      - PRINTER_URI=${PRINTER_URI:-}
+      
+      # Printer driver for CUPS (optional, default: everywhere)
+      - PRINTER_DRIVER=${PRINTER_DRIVER:-everywhere}
+      
+      # Set printer as default in CUPS (optional, default: true)
+      - PRINTER_SET_DEFAULT=${PRINTER_SET_DEFAULT:-true}
+      
+      # Enable duplex printing (optional, default: false)
+      - PRINT_DUPLEX=${PRINT_DUPLEX:-false}
     
     # Volume mounts
     volumes:
@@ -39,9 +51,9 @@ services:
       # Persist generated PDFs (optional)
       - printer-output:/tmp/printer-output
     
-    # Network mode: host mode is recommended for easier printer access
-    # Alternatively, you can use bridge mode with appropriate network configuration
-    network_mode: host
+    # Network mode: bridge mode (CUPS is not exposed externally)
+    # The container connects to printers on the network via bridge networking
+    network_mode: bridge
     
     # Resource limits (adjust based on Raspberry Pi model)
     deploy:
